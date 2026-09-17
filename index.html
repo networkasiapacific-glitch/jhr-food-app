@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JHR Food Hub Marketplace</title>
+    <script src="https://telegram.org"></script>
+    <link rel="stylesheet" href="https://unpkg.com" />
+    <script src="https://unpkg.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 12px; background: #f5f6fa; }
+        .halaman { display: none; }
+        .aktif { display: block; }
+        h2, h3 { margin-top: 0; color: #2ecc71; }
+        .kad-kedai { background: white; padding: 12px; border-radius: 10px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; align-items: center; cursor: pointer; }
+        .badge-kedai { width: 50px; height: 50px; background: #e1b12c; color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; font-size: 20px; }
+        .kad-item { background: white; padding: 15px; border-radius: 10px; margin-bottom: 12px; }
+        select, input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; }
+        #map { height: 180px; width: 100%; border-radius: 8px; margin-top: 10px; }
+        .btn { background: #2ecc71; color: white; border: none; width: 100%; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 6px; }
+        .btn-kembali { background: #718093; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+
+    <!-- HALAMAN 1: SENARAI PENIAGA -->
+    <div id="halamanMarketplace" class="halaman aktif">
+        <h2>🍔 JHR Food Hub</h2>
+        <p style="font-size: 14px;">Pilih peniaga untuk melihat menu pilihan:</p>
+        
+        <div class="kad-kedai" onclick="bukaKedai('Home Cooked Tingkat', 'Tingkat Standard', '12.00', '1.4920,103.8010')">
+            <div class="badge-kedai">🍱</div>
+            <div><strong>Home Cooked Tingkat</strong><div style="font-size: 12px; color: #7f8c8d;">Lauk Pauk Hidangan Harian</div></div>
+        </div>
+
+        <div class="kad-kedai" onclick="bukaKedai('Teh Tarik With You', 'Teh Tarik Kaw 500ml', '3.80', '1.4950,103.8050')">
+            <div class="badge-kedai">☕</div>
+            <div><strong>Teh Tarik With You</strong><div style="font-size: 12px; color: #7f8c8d;">Teh Tarik & Kopi Tarik Pekat</div></div>
+        </div>
+
+        <div class="kad-kedai" onclick="bukaKedai('Brownies September', 'Premium Brownie Kotak', '30.00', '1.4910,103.7990')">
+            <div class="badge-kedai">🍰</div>
+            <div><strong>Brownies September</strong><div style="font-size: 12px; color: #7f8c8d;">Pencuci Mulut & Kek</div></div>
+        </div>
+    </div>
+
+    <!-- HALAMAN 2: BORANG ORDER KEDAI -->
+    <div id="halamanKedai" class="halaman">
+        <button class="btn btn-kembali" onclick="kembaliKeMarketplace()">⬅️ Kembali</button>
+        <div class="kad-item">
+            <h3 id="namaKedaiTerpilih">Nama Kedai</h3>
+            <label>Menu Utama:</label><input type="text" id="menuKedai" readonly>
+            <label>Harga Asas:</label><input type="text" id="hargaKedai" readonly>
+            <label>Nama Anda:</label><input type="text" id="namaPelanggan" placeholder="Masukkan nama anda">
+        </div>
+        <div class="kad-item">
+            <h3>📍 Lokasi Rumah Anda</h3>
+            <div id="map"></div>
+            <div id="koordinatTerpilih" style="font-size: 11px; color: #7f8c8d; margin-top: 5px;">Mencari lokasi...</div>
+        </div>
+        <button class="btn" onclick="hantarOrderSistem()">SAHKAN TEMPAHAN (AUTO)</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        let dataKedaiAktif = {};
+        let map, marker;
+
+        function bukaKedai(namaKedai, menuUtama, harga, koordinatKedai) {
+            dataKedaiAktif = { nama: namaKedai, menu: menuUtama, harga: harga, koordinat: koordinatKedai };
+            document.getElementById('namaKedaiTerpilih').innerText = namaKedai;
+            document.getElementById('menuKedai').value = menuUtama;
+            document.getElementById('hargaKedai').value = "RM " + harga;
+            document.getElementById('halamanMarketplace').classList.remove('aktif');
+            document.getElementById('halamanKedai').classList.add('aktif');
+            setTimeout(initPeta, 300);
+        }
+
+        function kembaliKeMarketplace() {
+            document.getElementById('halamanKedai').classList.remove('aktif');
+            document.getElementById('halamanMarketplace').classList.add('aktif');
+        }
+
+        function initPeta() {
+            let latAwal = 1.4925; let lonAwal = 103.7950;
+            if (!map) {
+                map = L.map('map').setView([latAwal, lonAwal], 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                marker = L.marker([latAwal, lonAwal], {draggable: true}).addTo(map);
+                marker.on('dragend', function () {
+                    let posisi = marker.getLatLng();
+                    document.getElementById('koordinatTerpilih').innerText = `Koordinat: ${posisi.lat.toFixed(5)}, ${posisi.lng.toFixed(5)}`;
+                });
+            } else { map.invalidateSize(); }
+        }
+
+        function hantarOrderSistem() {
+            const nama = document.getElementById('namaPelanggan').value;
+            const posisiMarker = marker.getLatLng();
+            if (!nama) { alert("Sila isi nama anda!"); return; }
+            const dataHantar = {
+                namaPeniaga: dataKedaiAktif.nama,
+                menuPilihan: dataKedaiAktif.menu,
+                hargaMenu: dataKedaiAktif.harga,
+                lokasiKedai: dataKedaiAktif.koordinat,
+                namaPelanggan: nama,
+                lokasiPelanggan: `${posisiMarker.lat},${posisiMarker.lng}`
+            };
+            tg.sendData(JSON.stringify(dataHantar));
+        }
+    </script>
+</body>
+</html>
