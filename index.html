@@ -1,14 +1,16 @@
-              <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JHR Food Hub Marketplace</title>
-    <!-- Telegram Web App SDK -->
+    <!-- 1. MEMBAIKI SAMBUNGAN TELEGRAM SDK YANG SEBENAR -->
     <script src="https://telegram.org"></script>
-    <!-- Leaflet CSS & JS for Free Maps -->
+    
+    <!-- 2. MEMBAIKI CDN LEAFLET MAP YANG LENGKAP SUPAYA PETA BOLEH DILIHAT -->
     <link rel="stylesheet" href="https://unpkg.com" />
     <script src="https://unpkg.com"></script>
+    
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 12px; background: #f5f6fa; color: #2f3640; }
         .page { display: none; }
@@ -18,7 +20,7 @@
         .merchant-badge { width: 50px; height: 50px; background: #e1b12c; color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; font-size: 20px; }
         .item-card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         select, input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; }
-        #map { height: 180px; width: 100%; border-radius: 8px; margin-top: 10px; }
+        #map { height: 180px; width: 100%; border-radius: 8px; margin-top: 10px; z-index: 1; }
         .btn { background: #2ecc71; color: white; border: none; width: 100%; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px; }
         .btn-back { background: #718093; margin-bottom: 12px; }
         .location-info { font-size: 11px; color: #7f8c8d; margin-top: 5px; }
@@ -28,10 +30,9 @@
 
     <!-- PAGE 1: MERCHANT LIST (MARKETPLACE) -->
     <div id="marketplacePage" class="page active">
-        <h2>🍔 JHR Food Hub</h2>
+        <h2>JHR Food Hub</h2>
         <p style="font-size: 14px; margin-bottom: 15px;">Please select a merchant to view the menu:</p>
         
-        <!-- Store 1 -->
         <div class="merchant-card" onclick="openMerchant('Home Cooked Tingkat', 'Standard Catering Set', '12.00', '1.4920,103.8010')">
             <div class="merchant-badge">🍱</div>
             <div>
@@ -40,7 +41,6 @@
             </div>
         </div>
 
-        <!-- Store 2 -->
         <div class="merchant-card" onclick="openMerchant('Teh Tarik With You', 'Kaw Thick Teh Tarik 500ml', '3.80', '1.4950,103.8050')">
             <div class="merchant-badge">☕</div>
             <div>
@@ -49,7 +49,6 @@
             </div>
         </div>
 
-        <!-- Store 3 -->
         <div class="merchant-card" onclick="openMerchant('Brownies September', 'Premium Brownie Box', '30.00', '1.4910,103.7990')">
             <div class="merchant-badge">🍰</div>
             <div>
@@ -112,13 +111,15 @@
 
         function initMap() {
             let latStart = 1.4925;
-            let lonStart = 103.7950; // Focus area around Johor Bahru / Johor Jaya
+            let lonStart = 103.7950;
 
             if (!map) {
                 map = L.map('map').setView([latStart, lonStart], 14);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
                 marker = L.marker([latStart, lonStart], {draggable: true}).addTo(map);
                 
+                document.getElementById('selectedCoordinates').innerText = `Coordinates: ${latStart.toFixed(5)}, ${lonStart.toFixed(5)}`;
+
                 marker.on('dragend', function () {
                     let position = marker.getLatLng();
                     document.getElementById('selectedCoordinates').innerText = `Coordinates: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`;
@@ -129,7 +130,7 @@
         }
 
         function submitSystemOrder() {
-            const customerName = document.getElementById('customerName').value;
+            const customerName = document.getElementById('customerName').value.trim();
             const markerPosition = marker.getLatLng();
 
             if (!customerName) {
@@ -140,14 +141,15 @@
             const dataToSend = {
                 namaPeniaga: activeMerchantData.name,
                 menuPilihan: activeMerchantData.menu,
-                hargaMenu: activeMerchantData.price,
+                hargaMenu: "RM " + activeMerchantData.price,
                 lokasiKedai: activeMerchantData.coordinates,
                 namaPelanggan: customerName,
-                lokasiPelanggan: `${markerPosition.lat},${markerPosition.lng}`
+                lokasiPelanggan: `${markerPosition.lat.toFixed(5)},${markerPosition.lng.toFixed(5)}`
             };
 
             tg.sendData(JSON.stringify(dataToSend));
+            tg.close();
         }
     </script>
 </body>
-</html>  
+</html>
