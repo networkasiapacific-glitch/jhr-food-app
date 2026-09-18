@@ -2,154 +2,173 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JHR Food Hub Marketplace</title>
-    <!-- 1. MEMBAIKI SAMBUNGAN TELEGRAM SDK YANG SEBENAR -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>JHR Food Hub - Marketplace</title>
+    <!-- Telegram Web App SDK -->
     <script src="https://telegram.org"></script>
-    
-    <!-- 2. MEMBAIKI CDN LEAFLET MAP YANG LENGKAP SUPAYA PETA BOLEH DILIHAT -->
-    <link rel="stylesheet" href="https://unpkg.com" />
-    <script src="https://unpkg.com"></script>
-    
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 12px; background: #f5f6fa; color: #2f3640; }
-        .page { display: none; }
-        .active { display: block; }
-        h2, h3 { margin-top: 0; color: #2ecc71; }
-        .merchant-card { background: white; padding: 12px; border-radius: 10px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; align-items: center; cursor: pointer; }
-        .merchant-badge { width: 50px; height: 50px; background: #e1b12c; color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; font-size: 20px; }
-        .item-card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        select, input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; }
-        #map { height: 180px; width: 100%; border-radius: 8px; margin-top: 10px; z-index: 1; }
-        .btn { background: #2ecc71; color: white; border: none; width: 100%; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px; }
-        .btn-back { background: #718093; margin-bottom: 12px; }
-        .location-info { font-size: 11px; color: #7f8c8d; margin-top: 5px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #181818; color: #ffffff; margin: 0; padding: 15px; }
+        .header { text-align: center; padding: 10px 0; border-bottom: 1px solid #2c2c2e; margin-bottom: 15px; }
+        .header h1 { margin: 0; font-size: 22px; color: #ff9500; text-transform: uppercase; }
+        .header p { margin: 5px 0 0; font-size: 13px; color: #8e8e93; }
+        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 100px; }
+        .product-card { background: #262628; border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; }
+        .product-card img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; }
+        .product-title { font-size: 14px; font-weight: bold; margin: 8px 0 4px 0; min-height: 35px; display: flex; align-items: center; justify-content: center; }
+        .product-price { font-size: 13px; color: #ff9500; font-weight: bold; margin-bottom: 10px; }
+        .btn-add { background: #ff9500; color: white; border: none; padding: 8px 0; width: 100%; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .qty-counter { display: flex; align-items: center; justify-content: space-between; background: #3a3a3c; border-radius: 20px; padding: 2px; }
+        .qty-counter button { background: #ff9500; color: white; border: none; width: 28px; height: 24px; border-radius: 50%; font-weight: bold; cursor: pointer; }
+        .qty-counter span { font-size: 14px; font-weight: bold; width: 25px; text-align: center; }
+        .footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #262628; padding: 15px; border-top: 1px solid #3a3a3c; display: flex; justify-content: center; z-index: 100; }
+        .btn-view-cart { background: #34c759; color: white; border: none; padding: 12px 0; width: 90%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .screen { display: none; }
+        .active-screen { display: block; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 13px; color: #8e8e93; margin-bottom: 5px; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 8px; color: white; box-sizing: border-box; }
+        .summary-box { background: #2c2c2e; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <!-- PAGE 1: MERCHANT LIST (MARKETPLACE) -->
-    <div id="marketplacePage" class="page active">
-        <h2>JHR Food Hub</h2>
-        <p style="font-size: 14px; margin-bottom: 15px;">Please select a merchant to view the menu:</p>
-        
-        <div class="merchant-card" onclick="openMerchant('Home Cooked Tingkat', 'Standard Catering Set', '12.00', '1.4920,103.8010')">
-            <div class="merchant-badge">🍱</div>
-            <div>
-                <strong style="font-size: 16px;">Home Cooked Tingkat</strong>
-                <div style="font-size: 12px; color: #7f8c8d;">Healthy Daily Catering Dishes</div>
-            </div>
+    <!-- SCREEN 1: INTERACTIVE CATALOG MENU -->
+    <div id="catalog-screen" class="screen active-screen">
+        <div class="header">
+            <h1 id="merchant-title">JHR FOOD HUB</h1>
+            <p id="merchant-desc">Select item from our digital menu</p>
         </div>
-
-        <div class="merchant-card" onclick="openMerchant('Teh Tarik With You', 'Kaw Thick Teh Tarik 500ml', '3.80', '1.4950,103.8050')">
-            <div class="merchant-badge">☕</div>
-            <div>
-                <strong style="font-size: 16px;">Teh Tarik With You</strong>
-                <div style="font-size: 12px; color: #7f8c8d;">Thick Local Tea & Rich Pulled Coffee</div>
-            </div>
-        </div>
-
-        <div class="merchant-card" onclick="openMerchant('Brownies September', 'Premium Brownie Box', '30.00', '1.4910,103.7990')">
-            <div class="merchant-badge">🍰</div>
-            <div>
-                <strong style="font-size: 16px;">Brownies September</strong>
-                <div style="font-size: 12px; color: #7f8c8d;">Delicious Desserts & Birthday Cakes</div>
-            </div>
+        <div class="menu-grid" id="menu-container"></div>
+        <div class="footer-bar" id="cart-bar" style="display: none;">
+            <button class="btn-view-cart" onclick="showCheckoutScreen()">VIEW ORDER</button>
         </div>
     </div>
 
-    <!-- PAGE 2: ORDER FORM FOR SELECTED STORE -->
-    <div id="merchantPage" class="page">
-        <button class="btn btn-back" onclick="backToMarketplace()">⬅️ Back to Merchant List</button>
-        
-        <div class="item-card">
-            <h3 id="selectedMerchantName">Merchant Name</h3>
-            <label>Main Menu:</label>
-            <input type="text" id="merchantMenu" readonly>
-            
-            <label>Base Price:</label>
-            <input type="text" id="merchantPrice" readonly>
-
-            <label>Your Name (Customer):</label>
-            <input type="text" id="customerName" placeholder="Enter your name">
+    <!-- SCREEN 2: CHECKOUT & ADDRESS FORM -->
+    <div id="checkout-screen" class="screen">
+        <div class="header">
+            <h1>Checkout Details</h1>
+            <p>Confirm your delivery details & order list</p>
         </div>
-
-        <div class="item-card">
-            <h3>📍 Your Delivery Location</h3>
-            <p style="font-size: 14px; margin: 0;">Please drag the map and pin your delivery location:</p>
-            <div id="map"></div>
-            <div class="location-info" id="selectedCoordinates">Coordinates: Fetching GPS...</div>
+        <div class="summary-box">
+            <div id="cart-items-summary"></div>
+            <div class="summary-row" style="font-weight: bold; color: #ff9500; font-size: 16px; border-top: 1px solid #3a3a3c; padding-top: 8px;">
+                <span>Total Amount</span>
+                <span id="total-price-box">RM 0.00</span>
+            </div>
         </div>
-
-        <button class="btn" onclick="submitSystemOrder()">CONFIRM ORDER (AUTO)</button>
+        <div class="form-group"><label>Full Name</label><input type="text" id="cust-name" placeholder="Your full name"></div>
+        <div class="form-group"><label>Phone Number</label><input type="tel" id="cust-phone" placeholder="Example: 0123456789"></div>
+        <div class="form-group"><label>Delivery Address</label><textarea id="cust-address" rows="3" placeholder="House No, Street, City"></textarea></div>
+        <div class="form-group"><label>Remark (Optional)</label><input type="text" id="cust-remark" placeholder="Example: No vegetables"></div>
+        <div style="display: flex; gap: 10px; margin-top: 25px;">
+            <button class="btn-view-cart" style="background:#ff3b30;" onclick="hideCheckoutScreen()">BACK</button>
+            <button class="btn-view-cart" id="submit-btn" onclick="submitFinalOrder()">PAY NOW</button>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let activeMerchantData = {};
-        let map, marker;
+        const globalMerchantDatabase = {
+            "loklok": {
+                title: "MR LOK-LOK HUB", desc: "Fresh premium lok-lok sticks with signature sauces",
+                menu: [
+                    { id: "ll01", name: "Seafood Stick", price: 2.00, img: "https://unsplash.com" },
+                    { id: "ll02", name: "Meatball Stick", price: 1.50, img: "https://unsplash.com" },
+                    { id: "ll03", name: "Coolblock Bubble Tea", price: 5.00, img: "https://unsplash.com" }
+                ]
+            },
+            "burger": {
+                title: "BURGER BAKAR KAK TIMAH", desc: "Juicy premium grilled homemade burgers",
+                menu: [
+                    { id: "bg01", name: "Grilled Cheese Burger", price: 8.50, img: "https://unsplash.com" },
+                    { id: "bg02", name: "Cheesy Fries", price: 5.00, img: "https://unsplash.com" },
+                    { id: "bg03", name: "Coolblock Juice", price: 3.50, img: "https://unsplash.com" }
+                ]
+            }
+        };
 
-        function openMerchant(merchantName, mainMenu, price, merchantCoordinates) {
-            activeMerchantData = { name: merchantName, menu: mainMenu, price: price, coordinates: merchantCoordinates };
-            
-            document.getElementById('selectedMerchantName').innerText = merchantName;
-            document.getElementById('merchantMenu').value = mainMenu;
-            document.getElementById('merchantPrice').value = "RM " + price;
-            
-            document.getElementById('marketplacePage').classList.remove('active');
-            document.getElementById('merchantPage').classList.add('active');
-            
-            setTimeout(initMap, 300);
-        }
+        let currentCart = {};
+        let activeMenu = [];
 
-        function backToMarketplace() {
-            document.getElementById('merchantPage').classList.remove('active');
-            document.getElementById('marketplacePage').classList.add('active');
-        }
+        const urlParams = tg.initDataUnsafe.start_param || "loklok";
+        const currentShop = globalMerchantDatabase[urlParams] || globalMerchantDatabase["loklok"];
 
-        function initMap() {
-            let latStart = 1.4925;
-            let lonStart = 103.7950;
+        document.getElementById("merchant-title").innerText = currentShop.title;
+        document.getElementById("merchant-desc").innerText = currentShop.desc;
+        activeMenu = currentShop.menu;
 
-            if (!map) {
-                map = L.map('map').setView([latStart, lonStart], 14);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                marker = L.marker([latStart, lonStart], {draggable: true}).addTo(map);
+        function loadProducts() {
+            const container = document.getElementById("menu-container");
+            container.innerHTML = "";
+            activeMenu.forEach(item => {
+                const qty = currentCart[item.id] ? currentCart[item.id].qty : 0;
+                const card = document.createElement("div");
+                card.className = "product-card";
                 
-                document.getElementById('selectedCoordinates').innerText = `Coordinates: ${latStart.toFixed(5)}, ${lonStart.toFixed(5)}`;
+                let actionSection = `<button class="btn-add" onclick="addItemToCart('${item.id}')">ADD</button>`;
+                if (qty > 0) {
+                    actionSection = `
+                        <div class="qty-counter">
+                            <button onclick="changeQty('${item.id}', -1)">-</button>
+                            <span>${qty}</span>
+                            <button onclick="changeQty('${item.id}', 1)">+</button>
+                        </div>
+                    `;
+                }
 
-                marker.on('dragend', function () {
-                    let position = marker.getLatLng();
-                    document.getElementById('selectedCoordinates').innerText = `Coordinates: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`;
-                });
-            } else {
-                map.invalidateSize();
-            }
+                card.innerHTML = `
+                    <img src="${item.img}">
+                    <div class="product-title">${item.name}</div>
+                    <div class="product-price">RM ${item.price.toFixed(2)}</div>
+                    ${actionSection}
+                `;
+                container.appendChild(card);
+            });
+            toggleCartBar();
         }
 
-        function submitSystemOrder() {
-            const customerName = document.getElementById('customerName').value.trim();
-            const markerPosition = marker.getLatLng();
-
-            if (!customerName) {
-                alert("Please enter your name for delivery!");
-                return;
-            }
-
-            const dataToSend = {
-                namaPeniaga: activeMerchantData.name,
-                menuPilihan: activeMerchantData.menu,
-                hargaMenu: "RM " + activeMerchantData.price,
-                lokasiKedai: activeMerchantData.coordinates,
-                namaPelanggan: customerName,
-                lokasiPelanggan: `${markerPosition.lat.toFixed(5)},${markerPosition.lng.toFixed(5)}`
-            };
-
-            tg.sendData(JSON.stringify(dataToSend));
-            tg.close();
+        function addItemToCart(id) {
+            const product = activeMenu.find(p => p.id === id);
+            currentCart[id] = { name: product.name, price: product.price, qty: 1 };
+            loadProducts();
         }
-    </script>
-</body>
-</html>
+
+        function changeQty(id, delta) {
+            if (!currentCart[id]) return;
+            currentCart[id].qty += delta;
+            if (currentCart[id].qty <= 0) delete currentCart[id];
+            loadProducts();
+        }
+
+        function getTotalPrice() {
+            let total = 0;
+            Object.keys(currentCart).forEach(id => { total += currentCart[id].price * currentCart[id].qty; });
+            return total;
+        }
+
+        function toggleCartBar() {
+            const bar = document.getElementById("cart-bar");
+            bar.style.display = Object.keys(currentCart).length > 0 ? "flex" : "none";
+        }
+
+        function showCheckoutScreen() {
+            document.getElementById("catalog-screen").classList.remove("active-screen");
+            document.getElementById("checkout-screen").classList.add("active-screen");
+            
+            const summaryList = document.getElementById("cart-items-summary");
+            summaryList.innerHTML = "";
+            
+            Object.keys(currentCart).forEach(id => {
+                const item = currentCart[id];
+                const row = document.createElement("div");
+                row.className = "summary-row";
+                row.innerHTML = `<span>${item.name} (x${item.qty})</span><span>RM ${(item.price * item.qty).toFixed(2)}</span>`;
+                summaryList.appendChild(row);
+            });
+            
+            const total = getTotalPrice();
+            document.getElementById("total-price-box").innerText = `RM ${total.toFixed(2)}`;
