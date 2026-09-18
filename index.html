@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>JHR Food Hub - Marketplace</title>
-    <!-- Telegram Web App SDK -->
+    <title>JHR Food Hub - Interactive Catalog</title>
+    <!-- Official Telegram Web App SDK Connection -->
     <script src="https://telegram.org"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #181818; color: #ffffff; margin: 0; padding: 15px; }
@@ -74,29 +74,47 @@
 
         const globalMerchantDatabase = {
             "loklok": {
-                title: "MR LOK-LOK HUB", desc: "Fresh premium lok-lok sticks with signature sauces",
+                title: "MR LOK-LOK HUB", desc: "Fresh premium lok-lok sticks with sauces",
                 menu: [
                     { id: "ll01", name: "Seafood Stick", price: 2.00, img: "https://unsplash.com" },
-                    { id: "ll02", name: "Meatball Stick", price: 1.50, img: "https://unsplash.com" },
-                    { id: "ll03", name: "Coolblock Bubble Tea", price: 5.00, img: "https://unsplash.com" }
+                    { id: "ll02", name: "Meatball Stick", price: 1.50, img: "https://unsplash.com" }
                 ]
             },
             "burger": {
                 title: "BURGER BAKAR KAK TIMAH", desc: "Juicy premium grilled homemade burgers",
                 menu: [
                     { id: "bg01", name: "Grilled Cheese Burger", price: 8.50, img: "https://unsplash.com" },
-                    { id: "bg02", name: "Cheesy Fries", price: 5.00, img: "https://unsplash.com" },
-                    { id: "bg03", name: "Coolblock Juice", price: 3.50, img: "https://unsplash.com" }
+                    { id: "bg02", name: "Cheesy Fries", price: 5.00, img: "https://unsplash.com" }
                 ]
             }
         };
 
         let currentCart = {};
         let activeMenu = [];
+        let trackedMerchantChatId = "";
+        let trackedGroupChatId = "";
 
-        const urlParams = tg.initDataUnsafe.start_param || "loklok";
-        const currentShop = globalMerchantDatabase[urlParams] || globalMerchantDatabase["loklok"];
+        let shopKey = "loklok";
+        try {
+            const initParam = tg.initDataUnsafe.start_param;
+            if (initParam) {
+                var decodedData = JSON.parse(atob(initParam.replace(/-/g, '+').replace(/_/g, '/')));
+                if(decodedData.m_id) {
+                    trackedMerchantChatId = decodedData.m_id;
+                    trackedGroupChatId = decodedData.g_id;
+                    globalMerchantDatabase["live_scan"] = {
+                        title: decodedData.name.toUpperCase(),
+                        desc: "Live Dynamic Marketplace Offer",
+                        menu: [{ id: "live01", name: decodedData.menu, price: parseFloat(decodedData.price), img: "https://unsplash.com" }]
+                    };
+                    shopKey = "live_scan";
+                } else {
+                    shopKey = initParam;
+                }
+            }
+        } catch (e) { console.error(e); }
 
+        const currentShop = globalMerchantDatabase[shopKey] || globalMerchantDatabase["loklok"];
         document.getElementById("merchant-title").innerText = currentShop.title;
         document.getElementById("merchant-desc").innerText = currentShop.desc;
         activeMenu = currentShop.menu;
@@ -108,67 +126,67 @@
                 const qty = currentCart[item.id] ? currentCart[item.id].qty : 0;
                 const card = document.createElement("div");
                 card.className = "product-card";
-                
                 let actionSection = `<button class="btn-add" onclick="addItemToCart('${item.id}')">ADD</button>`;
                 if (qty > 0) {
-                    actionSection = `
-                        <div class="qty-counter">
-                            <button onclick="changeQty('${item.id}', -1)">-</button>
-                            <span>${qty}</span>
-                            <button onclick="changeQty('${item.id}', 1)">+</button>
-                        </div>
-                    `;
+                    actionSection = `<div class="qty-counter"><button onclick="changeQty('${item.id}', -1)">-</button><span>${qty}</span><button onclick="changeQty('${item.id}', 1)">+</button></div>`;
                 }
-
-                card.innerHTML = `
-                    <img src="${item.img}">
-                    <div class="product-title">${item.name}</div>
-                    <div class="product-price">RM ${item.price.toFixed(2)}</div>
-                    ${actionSection}
-                `;
+                card.innerHTML = `<img src="${item.img}"><div class="product-title">${item.name}</div><div class="product-price">RM ${item.price.toFixed(2)}</div>${actionSection}`;
                 container.appendChild(card);
             });
             toggleCartBar();
         }
 
-        function addItemToCart(id) {
-            const product = activeMenu.find(p => p.id === id);
-            currentCart[id] = { name: product.name, price: product.price, qty: 1 };
-            loadProducts();
-        }
-
-        function changeQty(id, delta) {
-            if (!currentCart[id]) return;
-            currentCart[id].qty += delta;
-            if (currentCart[id].qty <= 0) delete currentCart[id];
-            loadProducts();
-        }
-
-        function getTotalPrice() {
-            let total = 0;
-            Object.keys(currentCart).forEach(id => { total += currentCart[id].price * currentCart[id].qty; });
-            return total;
-        }
-
-        function toggleCartBar() {
-            const bar = document.getElementById("cart-bar");
-            bar.style.display = Object.keys(currentCart).length > 0 ? "flex" : "none";
-        }
+        function addItemToCart(id) { const product = activeMenu.find(p => p.id === id); currentCart[id] = { name: product.name, price: product.price, qty: 1 }; loadProducts(); }
+        function changeQty(id, delta) { if (!currentCart[id]) return; currentCart[id].qty += delta; if (currentCart[id].qty <= 0) delete currentCart[id]; loadProducts(); }
+        function getTotalPrice() { let total = 0; Object.keys(currentCart).forEach(id => { total += currentCart[id].price * currentCart[id].qty; }); return total; }
+        function toggleCartBar() { const bar = document.getElementById("cart-bar"); bar.style.display = Object.keys(currentCart).length > 0 ? "flex" : "none"; }
 
         function showCheckoutScreen() {
             document.getElementById("catalog-screen").classList.remove("active-screen");
             document.getElementById("checkout-screen").classList.add("active-screen");
-            
-            const summaryList = document.getElementById("cart-items-summary");
-            summaryList.innerHTML = "";
-            
+            const summaryList = document.getElementById("cart-items-summary"); summaryList.innerHTML = "";
             Object.keys(currentCart).forEach(id => {
-                const item = currentCart[id];
-                const row = document.createElement("div");
-                row.className = "summary-row";
+                const item = currentCart[id]; const row = document.createElement("div"); row.className = "summary-row";
                 row.innerHTML = `<span>${item.name} (x${item.qty})</span><span>RM ${(item.price * item.qty).toFixed(2)}</span>`;
                 summaryList.appendChild(row);
             });
-            
-            const total = getTotalPrice();
+                        const total = getTotalPrice();
             document.getElementById("total-price-box").innerText = `RM ${total.toFixed(2)}`;
+            document.getElementById("submit-btn").innerText = `PAY RM ${total.toFixed(2)}`;
+        }
+
+        function hideCheckoutScreen() {
+            document.getElementById("checkout-screen").classList.remove("active-screen");
+            document.getElementById("catalog-screen").classList.add("active-screen");
+            loadProducts();
+        }
+
+        function submitFinalOrder() {
+            const name = document.getElementById("cust-name").value.trim();
+            const phone = document.getElementById("cust-phone").value.trim();
+            const address = document.getElementById("cust-address").value.trim();
+            const remark = document.getElementById("cust-remark").value.trim();
+
+            if (!name || !phone || !address) { alert("Please complete Name, Phone, and Address!"); return; }
+
+            let orderItems = [];
+            Object.keys(currentCart).forEach(id => { orderItems.push(`${currentCart[id].name} x${currentCart[id].qty}`); });
+
+            const finalPayload = {
+                merchantName: document.getElementById("merchant-title").innerText,
+                menuItem: orderItems.join(", "),
+                itemPrice: "RM " + getTotalPrice().toFixed(2),
+                customerName: name,
+                customerLocation: address + " (Note: " + remark + ")",
+                merchantChatId: trackedMerchantChatId,
+                groupChatId: trackedGroupChatId
+            };
+
+            tg.sendData(JSON.stringify(finalPayload));
+            tg.close();
+        }
+        loadProducts();
+    </script>
+</body>
+</html>
+
